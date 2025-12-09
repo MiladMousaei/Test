@@ -143,53 +143,32 @@ function nextQuestion(){ if(step < q.length-1){ step++; renderOptions(); } }
 async function finishAndSend(){
   msg.innerText = 'در حال ذخیره روی سرور...';
   
-  // استفاده از JSONBin.io - باید API Key خودتون رو بگیرید از jsonbin.io
-  const API_KEY = '$2a$10$LMWKJ0NZD6LpLfOauBNRiuvBOobYArw7cW0UcQDhLWo6fksqBsV82';
-  const BIN_ID = '69380b3dd0ea881f401ccb01';
+  // استفاده از Formspree - ایمیل‌های رایگان دریافت می‌کنید
+  // ثبت‌نام کنید در: https://formspree.io و یک فرم بسازید
+  const FORMSPREE_ID = 'YOUR_FORM_ID'; // مثلاً: mqkonqbo
   
   try{
-    // ابتدا داده‌های فعلی را بخوانید
-    const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-      headers: {'X-Access-Key': API_KEY}
-    });
+    const formData = {
+      time: new Date().toLocaleString('fa-IR'),
+      ...answers
+    };
     
-    if (!getRes.ok) {
-      throw new Error('دسترسی به Bin ناموفق بود - کلید یا ID را چک کنید');
-    }
-    
-    const currentData = await getRes.json();
-    const allResults = currentData.record.results || [];
-    
-    // داده جدید اضافه کنید
-    allResults.push({
-      time: new Date().toISOString(),
-      answers: answers
-    });
-    
-    // ذخیره کنید
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-      method: 'PUT',
+    const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Access-Key': API_KEY
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({results: allResults})
+      body: JSON.stringify(formData)
     });
     
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || 'ذخیره‌سازی ناموفق بود');
+      throw new Error('ارسال ناموفق بود - Form ID را چک کنید');
     }
     
-    const j = await res.json();
-    if(j.record) {
-      msg.innerText = 'ذخیره شد ✔';
-      setTimeout(() => {
-        msg.innerText = 'می‌تونی پنل مدیریت رو چک کنی!';
-      }, 2000);
-    } else {
-      msg.innerText = 'ذخیره انجام نشد';
-    }
+    msg.innerText = 'ذخیره شد ✔ ایمیل ارسال شد!';
+    setTimeout(() => {
+      msg.innerText = 'پاسخ‌ها به ایمیل شما فرستاده شد';
+    }, 2000);
   }catch(e){
     console.error('Error:', e);
     msg.innerText = 'خطا: ' + (e.message || 'اتصال به سرور ناموفق بود');
@@ -213,35 +192,10 @@ closeAdmin.onclick = ()=>{ adminOverlay.style.display = 'none'; };
 refreshBtn.onclick = ()=> loadResults();
 
 async function loadResults(){
-  resultsBox.innerHTML = 'در حال خواندن...';
-  
-  const API_KEY = '$2a$10$LMWKJ0NZD6LpLfOauBNRiuvBOobYArw7cW0UcQDhLWo6fksqBsV82';
-  const BIN_ID = '69380b3dd0ea881f401ccb01';
-  
-  try{
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-      headers: {'X-Access-Key': API_KEY}
-    });
-    const data = await res.json();
-    const results = data.record.results || [];
-    
-    if(results.length === 0){
-      resultsBox.innerHTML = '<div>نتیجۀ ثبت‌شده‌ای نیست</div>';
-      return;
-    }
-    
-    let html = '<table><thead><tr><th>#</th><th>تاریخ</th><th>پاسخ‌ها</th></tr></thead><tbody>';
-    results.reverse().forEach((item, idx) => {
-      const date = new Date(item.time).toLocaleString('fa-IR');
-      const answersText = JSON.stringify(item.answers, null, 2);
-      html += `<tr><td>${idx+1}</td><td>${date}</td><td><pre>${escapeHtml(answersText)}</pre></td></tr>`;
-    });
-    html += '</tbody></table>';
-    resultsBox.innerHTML = html;
-  }catch(e){
-    console.error('Load error:', e);
-    resultsBox.innerHTML = '<div style="color:red">خطا: ' + escapeHtml(e.message || 'دریافت نتایج ناموفق بود') + '</div>';
-  }
+  resultsBox.innerHTML = 'نتایج در Formspree Dashboard قابل مشاهده است.<br><br>' +
+    '<a href="https://formspree.io/forms" target="_blank" style="color:#2196f3;text-decoration:underline">' +
+    'مشاهده نتایج در Formspree →</a><br><br>' +
+    '<small>بعد از ورود به Formspree، تمام پاسخ‌ها رو می‌بینی و می‌تونی به صورت CSV دانلود کنی.</small>';
 }
 
 function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
