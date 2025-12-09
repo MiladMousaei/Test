@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>سؤالات میلاد  </title>
+<style>
+  :root{
+    --card-bg:#ffffff;
+    --accent:#4caf50;
+    --accent-2:#2196f3;
+    --muted:#666;
+    --danger:#e91e63;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,'Helvetica Neue',Arial; background:linear-gradient(180deg,#f7f9fc,#eef4fb);color:#111}
+
+  /* کانتینر مرکزی */
+  .wrap{max-width:1000px;margin:20px auto;padding:16px}
+
+  /* کارت سوال */
+  #box{background:var(--card-bg);border-radius:var(--radius);padding:22px;box-shadow:0 6px 20px rgba(16,24,40,0.08);} 
+  #welcome{background:#fff7; padding:12px;border-radius:10px;margin-bottom:12px;font-weight:700;text-align:center}
+
+  h2#question{margin:0 0 14px;font-size:20px;line-height:1.3}
+  #msg{min-height:22px;margin-top:8px;color:var(--muted);font-weight:600}
+
+  /* گزینه‌ها: گرید روی دسکتاپ، ستون روی موبایل */
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .options.full{grid-template-columns:1fr}
+  .options button{padding:12px 14px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-size:16px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.06);transition:transform .12s,opacity .12s}
+  .options button:hover{transform:translateY(-2px)}
+  .options button.disabled{background:#bbb;cursor:not-allowed;opacity:0.8}
+
+  /* دکمه‌های عمل */
+  .actions{display:flex;gap:10px;align-items:center;margin-top:16px}
+  .actions .primary{background:var(--accent-2);color:#fff;padding:10px 14px;border-radius:10px;border:0;cursor:pointer}
+  .actions .ghost{background:transparent;border:1px solid #e6e6e6;padding:10px 14px;border-radius:10px;cursor:pointer}
+
+  textarea{width:100%;min-height:110px;padding:12px;border-radius:10px;border:1px solid #e6e9ef;font-size:15px}
+
+  /* دکمه ادمین */
+  #adminBtn{position:fixed;left:18px;top:18px;background:var(--danger);color:#fff;border:0;padding:10px 12px;border-radius:10px;box-shadow:0 6px 18px rgba(233,30,99,0.12);cursor:pointer;z-index:40}
+
+  /* پنل مدیریت — مودال کامل */
+  #adminOverlay{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  #adminPanel{background:var(--card-bg);width:100%;max-width:980px;border-radius:12px;padding:18px;box-shadow:0 20px 60px rgba(2,6,23,0.2);max-height:90vh;overflow:auto}
+  #adminHeader{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  #resultsBox table{width:100%;border-collapse:collapse;margin-top:12px}
+  #resultsBox th,#resultsBox td{border:1px solid #eee;padding:8px;text-align:right;font-size:14px}
+  #resultsBox pre{white-space:pre-wrap;margin:0;font-family:inherit}
+
+  /* ریسپانسیو */
+  @media (max-width:700px){
+    h2#question{font-size:18px}
+    .options{grid-template-columns:1fr;}
+    #box{padding:16px}
+    #adminBtn{left:10px;top:10px;padding:9px}
+  }
+  @media (max-width:420px){
+    .actions{flex-direction:column;align-items:stretch}
+    .options button{font-size:15px;padding:12px}
+    textarea{min-height:90px}
+  }
+</style>
+</head>
+<body>
+
+<button id="adminBtn">پنل مدیریت</button>
+
+<div class="wrap">
+  <div id="box">
+    <div id="welcome">طرنم خوشگله — خوش اومدی 🌸</div>
+    <h2 id="question">...</h2>
+    <div id="options" class="options"></div>
+
+    <div class="actions">
+      <div id="msg"></div>
+      <button id="nextBtn" class="primary" style="display:none" onclick="nextQuestion()">برو بعدی</button>
+    </div>
+  </div>
+</div>
+
+<!-- پنل مدیریت مدال -->
+<div id="adminOverlay">
+  <div id="adminPanel">
+    <div id="adminHeader">
+      <h3>داشبورد مدیریت</h3>
+      <div>
+        <button id="refreshBtn" class="ghost">بارگزاری مجدد</button>
+        <button id="closeAdmin">بستن</button>
+      </div>
+    </div>
+    <div id="resultsBox">در حال بارگذاری...</div>
+  </div>
+</div>
+
+<script>
+// ====== سوالات و رفتارها ======
+let step = 0; let answers = {};
+const q = [
+  {text:"خودت رو دوست داری؟", options:["بله","خیر"], action(c){msg.innerText = "میدونم میلاد رو دوست داری😁";}},
+  {text:"کی خوشگل تره؟", options:["میلاد","طرنم"], action(c){msg.innerText = "صد در صد میلاد😎";}},
+  {text:"شغل میلاد چیه؟", options:["فروش گندم","فروش جو","فروش دوتاش"], action(c){msg.innerText = (c=="فروش جو")?"عجبی آفرین😅":"اوکی🤣";}},
+  {text:"اگه میلاد غیب بشه دلت تنگ میشه؟", options:["بله","خیر"], action(c){}},
+  {text:"به نظرت میلاد چطور پسریه؟", options:["ساده","مهربون","باحال و پایه","پسر بدی"], action(c){}},
+  {text:"پیشنهاد رابطه و دیت با میلاد قبول می‌کنی؟", options:["بله","خیر"], action(c){ if(c=="بله"){ msg.innerText="آفرین به تو تصمیم خوبی گرفتی😍"; /* disable خیر if desired */ } else { msg.innerText = "باشه ولی این رسمش نبود گناه داره☹️"; } }},
+  {text:"اگه پیغام خاصی براش داری اینجا بنویس:", options:[], action(c){} }
+];
+
+const question = document.getElementById('question');
+const optionsEl = document.getElementById('options');
+const msg = document.getElementById('msg');
+const nextBtn = document.getElementById('nextBtn');
+
+function renderOptions(){
+  msg.innerText=''; nextBtn.style.display='none';
+  const data = q[step];
+  question.innerText = data.text;
+  optionsEl.innerHTML = '';
+
+  // اگر آخرین سؤال است، کادر متن نشان بده
+  if(step === q.length - 1){
+    const ta = document.createElement('textarea'); ta.placeholder='پیام...';
+    const send = document.createElement('button'); send.innerText='ارسال'; send.className='primary';
+    send.onclick = ()=>{ answers[step] = ta.value||''; finishAndSend(); };
+    optionsEl.appendChild(ta); optionsEl.appendChild(send);
+    return;
+  }
+
+  // اگر تعداد گزینه‌ها 1 یا بیشتر — چیدمان تک ستونه در موبایل handled by CSS
+  q[step].options.forEach(op=>{
+    const b = document.createElement('button'); b.innerText = op;
+    b.onclick = ()=>{ if(b.disabled) return; answers[step]=op; data.action(op); nextBtn.style.display='inline-block'; };
+    optionsEl.appendChild(b);
+  });
+}
+
+function nextQuestion(){ if(step < q.length-1){ step++; renderOptions(); } }
+
+// ارسال نهایی و ذخیره روی سرور
+async function finishAndSend(){
+  msg.innerText = 'در حال ذخیره روی سرور...';
+  
+  // استفاده از JSONBin.io - باید API Key خودتون رو بگیرید از jsonbin.io
+  const API_KEY = '$2a$10$LMWKJ0NZD6LpLfOauBNRiuvBOobYArw7cW0UcQDhLWo6fksqBsV82';
+  const BIN_ID = '69380b3dd0ea881f401ccb01';
+  
+  try{
+    // ابتدا داده‌های فعلی را بخوانید
+    const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+      headers: {'X-Access-Key': API_KEY}
+    });
+    const currentData = await getRes.json();
+    const allResults = currentData.record.results || [];
+    
+    // داده جدید اضافه کنید
+    allResults.push({
+      time: new Date().toISOString(),
+      answers: answers
+    });
+    
+    // ذخیره کنید
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Access-Key': API_KEY
+      },
+      body: JSON.stringify({results: allResults})
+    });
+    
+    const j = await res.json();
+    if(j.record) {
+      msg.innerText = 'ذخیره شد ✔';
+    } else {
+      msg.innerText = 'ذخیره انجام نشد';
+    }
+  }catch(e){
+    console.error(e);
+    msg.innerText = 'خطا در اتصال به سرور';
+  }
+}
+
+// ====== پنل مدیریت مدال ======
+const adminBtn = document.getElementById('adminBtn');
+const adminOverlay = document.getElementById('adminOverlay');
+const adminPanel = document.getElementById('adminPanel');
+const closeAdmin = document.getElementById('closeAdmin');
+const resultsBox = document.getElementById('resultsBox');
+const refreshBtn = document.getElementById('refreshBtn');
+
+adminBtn.onclick = async ()=>{
+  const pass = prompt('رمز ورود؟'); if(pass !== 'milad3070') return alert('رمز اشتباه!');
+  adminOverlay.style.display = 'flex';
+  await loadResults();
+};
+closeAdmin.onclick = ()=>{ adminOverlay.style.display = 'none'; };
+refreshBtn.onclick = ()=> loadResults();
+
+async function loadResults(){
+  resultsBox.innerHTML = 'در حال خواندن...';
+  
+  const API_KEY = '$2a$10$LMWKJ0NZD6LpLfOauBNRiuvBOobYArw7cW0UcQDhLWo6fksqBsV82';
+  const BIN_ID = '69380b3dd0ea881f401ccb01';
+  
+  try{
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+      headers: {'X-Access-Key': API_KEY}
+    });
+    const data = await res.json();
+    const results = data.record.results || [];
+    
+    if(results.length === 0){
+      resultsBox.innerHTML = '<div>نتیجۀ ثبت‌شده‌ای نیست</div>';
+      return;
+    }
+    
+    let html = '<table><thead><tr><th>#</th><th>تاریخ</th><th>پاسخ‌ها</th></tr></thead><tbody>';
+    results.reverse().forEach((item, idx) => {
+      const date = new Date(item.time).toLocaleString('fa-IR');
+      const answersText = JSON.stringify(item.answers, null, 2);
+      html += `<tr><td>${idx+1}</td><td>${date}</td><td><pre>${escapeHtml(answersText)}</pre></td></tr>`;
+    });
+    html += '</tbody></table>';
+    resultsBox.innerHTML = html;
+  }catch(e){
+    console.error(e);
+    resultsBox.innerHTML = 'خطا در دریافت نتایج';
+  }
+}
+
+function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// بارگذاری اولیه
+renderOptions();
+</script>
+</body>
+</html>
