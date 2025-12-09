@@ -152,6 +152,11 @@ async function finishAndSend(){
     const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
       headers: {'X-Access-Key': API_KEY}
     });
+    
+    if (!getRes.ok) {
+      throw new Error('دسترسی به Bin ناموفق بود - کلید یا ID را چک کنید');
+    }
+    
     const currentData = await getRes.json();
     const allResults = currentData.record.results || [];
     
@@ -171,15 +176,23 @@ async function finishAndSend(){
       body: JSON.stringify({results: allResults})
     });
     
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'ذخیره‌سازی ناموفق بود');
+    }
+    
     const j = await res.json();
     if(j.record) {
       msg.innerText = 'ذخیره شد ✔';
+      setTimeout(() => {
+        msg.innerText = 'می‌تونی پنل مدیریت رو چک کنی!';
+      }, 2000);
     } else {
       msg.innerText = 'ذخیره انجام نشد';
     }
   }catch(e){
-    console.error(e);
-    msg.innerText = 'خطا در اتصال به سرور';
+    console.error('Error:', e);
+    msg.innerText = 'خطا: ' + (e.message || 'اتصال به سرور ناموفق بود');
   }
 }
 
@@ -226,8 +239,8 @@ async function loadResults(){
     html += '</tbody></table>';
     resultsBox.innerHTML = html;
   }catch(e){
-    console.error(e);
-    resultsBox.innerHTML = 'خطا در دریافت نتایج';
+    console.error('Load error:', e);
+    resultsBox.innerHTML = '<div style="color:red">خطا: ' + escapeHtml(e.message || 'دریافت نتایج ناموفق بود') + '</div>';
   }
 }
 
